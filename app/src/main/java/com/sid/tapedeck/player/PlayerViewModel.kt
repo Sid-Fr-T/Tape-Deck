@@ -16,8 +16,10 @@ import com.sid.tapedeck.data.model.Song
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -50,6 +52,52 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _queue = MutableStateFlow<List<Song>>(emptyList())
     val queue: StateFlow<List<Song>> = _queue.asStateFlow()
+
+    private val favoritesRepository = com.sid.tapedeck.data.repository.FavoritesRepository(application)
+    val favoriteSongIds: StateFlow<Set<String>> = favoritesRepository.favoriteSongIds
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptySet())
+
+    private var sleepTimerJob: Job? = null
+    private val _sleepTimerMinutesLeft = MutableStateFlow<Int?>(null)
+    val sleepTimerMinutesLeft: StateFlow<Int?> = _sleepTimerMinutesLeft.asStateFlow()
+
+    fun toggleFavorite(songId: Long) {
+        viewModelScope.launch {
+            favoritesRepository.toggleFavorite(songId)
+        }
+    }
+
+    fun setSleepTimer(minutes: Int) {
+        sleepTimerJob?.cancel()
+        if (minutes <= 0) {
+            _sleepTimerMinutesLeft.value = null
+            return
+        }
+        _sleepTimerMinutesLeft.value = minutes
+        sleepTimerJob = viewModelScope.launch {
+            var remaining = minutes
+            while (remaining > 0) {
+                delay(60_000L)
+                remaining--
+                _sleepTimerMinutesLeft.value = if (remaining > 0) remaining else null
+            }
+            controller?.pause()
+        }
+    }
+
+    fun clearUpNext() {
+        val player = controller ?: return
+        val currentIndex = player.currentMediaItemIndex
+        val count = player.mediaItemCount
+        if (currentIndex < 0) return
+        for (i in count - 1 downTo currentIndex + 1) {
+            player.removeMediaItem(i)
+        }
+        val currentQueue = _queue.value
+        if (currentIndex in currentQueue.indices) {
+            _queue.value = currentQueue.subList(0, currentIndex + 1)
+        }
+    }
 
     // 2Hz Position update job - active ONLY when UI is visible
     private var positionPollingJob: Job? = null

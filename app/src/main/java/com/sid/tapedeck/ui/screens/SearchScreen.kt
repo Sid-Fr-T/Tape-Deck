@@ -42,6 +42,7 @@ import com.sid.tapedeck.ui.components.AlbumArt
 import com.sid.tapedeck.ui.components.SongRow
 import com.sid.tapedeck.ui.components.TapeCard
 import com.sid.tapedeck.ui.components.TapeChip
+import com.sid.tapedeck.ui.components.TapeChipRow
 import com.sid.tapedeck.ui.components.TapeIcons
 import com.sid.tapedeck.ui.components.TapeText
 import com.sid.tapedeck.ui.theme.TapeTheme
@@ -183,21 +184,13 @@ fun SearchScreen(
         Spacer(modifier = Modifier.height(14.dp))
 
         // Chips: All, Songs, Albums, Artists
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 22.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            SearchFilter.entries.forEach { filter ->
-                TapeChip(
-                    text = filter.label,
-                    isSelected = selectedFilter == filter,
-                    onClick = { selectedFilter = filter }
-                )
+        TapeChipRow(
+            labels = listOf("All", "Songs", "Albums", "Artists"),
+            selected = selectedFilter.label,
+            onSelect = { label ->
+                SearchFilter.entries.firstOrNull { it.label == label }?.let { selectedFilter = it }
             }
-        }
+        )
 
         Spacer(modifier = Modifier.height(14.dp))
 

@@ -35,6 +35,7 @@ import com.sid.tapedeck.ui.components.SongRow
 import com.sid.tapedeck.ui.components.TapeButton
 import com.sid.tapedeck.ui.components.TapeCard
 import com.sid.tapedeck.ui.components.TapeChip
+import com.sid.tapedeck.ui.components.TapeChipRow
 import com.sid.tapedeck.ui.components.TapeIconButton
 import com.sid.tapedeck.ui.components.TapeIcons
 import com.sid.tapedeck.ui.components.TapeText
@@ -215,7 +216,7 @@ fun HomeScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     // Hero TapeCard (padding 16dp)
                     item {
@@ -273,23 +274,15 @@ fun HomeScreen(
                         }
                     }
 
-                    // Chips row: All (selected), Songs, Albums, Artists
+                    // Chips row: All, Songs, Albums, Artists
                     item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                                .padding(horizontal = 22.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            HomeFilter.entries.forEach { filter ->
-                                TapeChip(
-                                    text = filter.label,
-                                    isSelected = selectedFilter == filter,
-                                    onClick = { selectedFilter = filter }
-                                )
+                        TapeChipRow(
+                            labels = listOf("All", "Songs", "Albums", "Artists"),
+                            selected = selectedFilter.label,
+                            onSelect = { label ->
+                                HomeFilter.entries.firstOrNull { it.label == label }?.let { selectedFilter = it }
                             }
-                        }
+                        )
                     }
 
                     // Section based on filter

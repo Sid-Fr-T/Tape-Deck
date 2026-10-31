@@ -5,22 +5,28 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.sid.tapedeck.ui.theme.TapeType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.sid.tapedeck.ui.theme.TapeTheme
+import com.sid.tapedeck.ui.theme.TapeType
 import com.sid.tapedeck.ui.theme.chunkyBorder
 import com.sid.tapedeck.ui.theme.hardShadow
 
 /**
- * TapeChip: padding 18x9dp, radius 16dp, 3dp border, ExtraBold 16sp.
+ * TapeChip: 40dp height, 3dp border, hard shadow, 14sp ExtraBold, 4dp horizontal padding.
+ * Content is centered, single line (maxLines = 1, softWrap = false), textAlign = Center.
  * Selected = lime background with onAccent text.
  */
 @Composable
@@ -42,8 +48,15 @@ fun TapeChip(
     val currentYOffset = if (isPressed) shadowDist else 0.dp
     val currentShadow = if (isPressed) 0.dp else shadowDist
 
+    val density = LocalDensity.current
+    val effectiveFontScale = remember(density.fontScale) {
+        // Ensures 9-letter words like "Playlists" do not wrap or clip on a 360dp width screen at largest font size
+        density.fontScale.coerceAtMost(1.05f)
+    }
+
     Box(
         modifier = modifier
+            .height(40.dp)
             .offset(y = currentYOffset)
             .hardShadow(color = colors.line, offsetY = currentShadow, shape = shape)
             .background(color = bg, shape = shape)
@@ -53,14 +66,20 @@ fun TapeChip(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 18.dp, vertical = 9.dp),
+            .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
-        TapeText(
-            text = text,
-            style = TapeType.rowTitle,
-            color = textColor
-        )
+        CompositionLocalProvider(
+            LocalDensity provides Density(density.density, fontScale = effectiveFontScale)
+        ) {
+            TapeText(
+                text = text,
+                style = TapeType.chip,
+                color = textColor,
+                maxLines = 1,
+                softWrap = false,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
-

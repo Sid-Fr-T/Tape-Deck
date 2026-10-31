@@ -17,6 +17,7 @@ fun TapeText(
     color: Color = LocalTapeColors.current.ink,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Ellipsis,
+    softWrap: Boolean = true,
     textAlign: TextAlign? = null
 ) {
     Text(
@@ -26,6 +27,7 @@ fun TapeText(
         style = style,
         maxLines = maxLines,
         overflow = overflow,
+        softWrap = softWrap,
         textAlign = textAlign
     )
 }

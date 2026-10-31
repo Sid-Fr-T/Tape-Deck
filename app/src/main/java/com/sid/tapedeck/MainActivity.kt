@@ -11,17 +11,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Scaffold
-import com.sid.tapedeck.ui.components.TapeText
-import com.sid.tapedeck.ui.theme.TapeType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -30,7 +26,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -47,7 +42,8 @@ import com.sid.tapedeck.data.repository.LibraryState
 import com.sid.tapedeck.player.PlayerViewModel
 import com.sid.tapedeck.ui.components.BottomNav
 import com.sid.tapedeck.ui.components.MiniPlayer
-import com.sid.tapedeck.ui.screens.AlbumDetailScreen
+import com.sid.tapedeck.ui.components.TapeText
+import com.sid.tapedeck.ui.screens.AlbumScreen
 import com.sid.tapedeck.ui.screens.HomeScreen
 import com.sid.tapedeck.ui.screens.LibraryScreen
 import com.sid.tapedeck.ui.screens.LyricsScreen
@@ -57,6 +53,7 @@ import com.sid.tapedeck.ui.screens.QueueScreen
 import com.sid.tapedeck.ui.screens.SearchScreen
 import com.sid.tapedeck.ui.screens.YouScreen
 import com.sid.tapedeck.ui.theme.TapeTheme
+import com.sid.tapedeck.ui.theme.TapeType
 import com.sid.tapedeck.ui.theme.ThemeMode
 import com.sid.tapedeck.ui.theme.chunkyBorder
 import com.sid.tapedeck.ui.viewmodel.MusicViewModel
@@ -159,14 +156,13 @@ fun TapedeckAppShell(
     onSelectTheme: (ThemeMode) -> Unit
 ) {
     val colors = TapeTheme.colors
-    val typography = TapeTheme.typography
     val navController = rememberNavController()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "home"
 
-    // MiniPlayer and BottomNav are docked only on the 4 main tabs
     val isMainTab = currentRoute in setOf("home", "library", "search", "you")
+    val isAlbumScreen = currentRoute.startsWith("album")
 
     val libraryState by musicViewModel.libraryState.collectAsState()
     val currentPlayingSong by playerViewModel.currentSong.collectAsState()
@@ -176,13 +172,15 @@ fun TapedeckAppShell(
     val shuffleModeEnabled by playerViewModel.shuffleModeEnabled.collectAsState()
     val repeatMode by playerViewModel.repeatMode.collectAsState()
     val queue by playerViewModel.queue.collectAsState()
+    val favoriteSongIds by playerViewModel.favoriteSongIds.collectAsState()
+    val sleepTimerMinutesLeft by playerViewModel.sleepTimerMinutesLeft.collectAsState()
 
     Scaffold(
         containerColor = colors.bg,
         bottomBar = {
             if (isMainTab) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // Real Docked MiniPlayer directly above BottomNav
+                    // Docked MiniPlayer directly above BottomNav
                     MiniPlayer(
                         title = currentPlayingSong?.title ?: "Select a cassette",
                         artist = currentPlayingSong?.artist ?: "Tapedeck Vault",
@@ -207,6 +205,21 @@ fun TapedeckAppShell(
                                 }
                             }
                         }
+                    )
+                }
+            } else if (isAlbumScreen) {
+                // Docked MiniPlayer on Album Screen as per design PDF
+                Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
+                    MiniPlayer(
+                        title = currentPlayingSong?.title ?: "Select a cassette",
+                        artist = currentPlayingSong?.artist ?: "Tapedeck Vault",
+                        albumId = currentPlayingSong?.albumId?.toString(),
+                        artworkUri = currentPlayingSong?.albumArtUri,
+                        isPlaying = isPlaying,
+                        onPlayPauseClick = { playerViewModel.playPause() },
+                        onPreviousClick = { playerViewModel.previous() },
+                        onNextClick = { playerViewModel.next() },
+                        onClick = { navController.navigate("nowPlaying") }
                     )
                 }
             }
@@ -277,16 +290,30 @@ fun TapedeckAppShell(
                 )
             }
 
-            // Player and Detail Screens (Hide BottomNav and MiniPlayer)
+            // Real Album Screen
             composable("album/{id}") { backStackEntry ->
-                val id = backStackEntry.arguments?.getString("id") ?: "tape"
-                AlbumDetailScreen(
+                val id = backStackEntry.arguments?.getString("id") ?: ""
+                val albums = (libraryState as? LibraryState.Success)?.albums ?: emptyList()
+                AlbumScreen(
                     albumId = id,
+                    albums = albums,
+                    currentPlayingSong = currentPlayingSong,
+                    isPlaying = isPlaying,
                     onBack = { navController.popBackStack() },
-                    onPlayTrack = { navController.navigate("nowPlaying") }
+                    onPlaySong = { selectedSong, playlist ->
+                        val index = playlist.indexOfFirst { it.id == selectedSong.id }.coerceAtLeast(0)
+                        playerViewModel.playList(playlist, index)
+                    },
+                    onShuffleAlbum = { albumSongs ->
+                        val shuffled = albumSongs.shuffled()
+                        playerViewModel.playList(shuffled, 0)
+                    }
                 )
             }
+
+            // Real Now Playing Screen
             composable("nowPlaying") {
+                val isFavorite = currentPlayingSong?.let { favoriteSongIds.contains(it.id.toString()) } ?: false
                 NowPlayingScreen(
                     song = currentPlayingSong,
                     isPlaying = isPlaying,
@@ -294,64 +321,54 @@ fun TapedeckAppShell(
                     durationMs = durationMs,
                     shuffleModeEnabled = shuffleModeEnabled,
                     repeatMode = repeatMode,
+                    isFavorite = isFavorite,
+                    sleepTimerMinutesLeft = sleepTimerMinutesLeft,
                     onTogglePlayPause = { playerViewModel.playPause() },
                     onNext = { playerViewModel.next() },
                     onPrevious = { playerViewModel.previous() },
                     onSeek = { playerViewModel.seekTo(it) },
                     onToggleShuffle = { playerViewModel.toggleShuffle() },
                     onCycleRepeat = { playerViewModel.cycleRepeatMode() },
+                    onToggleFavorite = {
+                        currentPlayingSong?.let { playerViewModel.toggleFavorite(it.id) }
+                    },
+                    onSetSleepTimer = { minutes ->
+                        playerViewModel.setSleepTimer(minutes)
+                    },
                     onDismiss = { navController.popBackStack() },
                     onNavigateToQueue = { navController.navigate("queue") },
                     onNavigateToLyrics = { navController.navigate("lyrics") }
                 )
             }
+
+            // Real Queue Screen
             composable("queue") {
                 QueueScreen(
                     queue = queue,
                     currentSong = currentPlayingSong,
+                    isPlaying = isPlaying,
+                    currentPositionMs = currentPositionMs,
                     onPlayQueueIndex = { index ->
                         playerViewModel.playList(queue, index)
                     },
+                    onTogglePlayPause = { playerViewModel.playPause() },
                     onRemoveFromQueue = { index ->
                         playerViewModel.removeFromQueue(index)
                     },
+                    onReorderQueue = { fromIndex, toIndex ->
+                        playerViewModel.reorderQueue(fromIndex, toIndex)
+                    },
+                    onClearUpNext = { playerViewModel.clearUpNext() },
                     onBack = { navController.popBackStack() }
                 )
             }
+
+            // Lyrics Screen
             composable("lyrics") {
                 LyricsScreen(
                     onBack = { navController.popBackStack() }
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ThemeToggleChip(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val colors = TapeTheme.colors
-    val bg = if (isSelected) colors.pink else colors.card
-    val textColor = if (isSelected) colors.onPink else colors.ink
-
-    Box(
-        modifier = Modifier
-            .background(bg)
-            .chunkyBorder(colors.line, width = 2.dp)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        TapeText(
-            text = label,
-            style = TapeType.topBar,
-            color = textColor
-        )
     }
 }

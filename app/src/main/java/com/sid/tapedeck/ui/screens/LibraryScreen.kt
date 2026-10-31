@@ -40,6 +40,7 @@ import com.sid.tapedeck.ui.components.SongRow
 import com.sid.tapedeck.ui.components.TapeButton
 import com.sid.tapedeck.ui.components.TapeCard
 import com.sid.tapedeck.ui.components.TapeChip
+import com.sid.tapedeck.ui.components.TapeChipRow
 import com.sid.tapedeck.ui.components.TapeIconButton
 import com.sid.tapedeck.ui.components.TapeIcons
 import com.sid.tapedeck.ui.components.TapeText
@@ -121,21 +122,13 @@ fun LibraryScreen(
         Spacer(modifier = Modifier.height(14.dp))
 
         // Chips: Songs, Albums, Artists, Playlists
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 22.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            LibraryTab.entries.forEach { tab ->
-                TapeChip(
-                    text = tab.label,
-                    isSelected = selectedTab == tab,
-                    onClick = { selectedTab = tab }
-                )
+        TapeChipRow(
+            labels = listOf("Songs", "Albums", "Artists", "Playlists"),
+            selected = selectedTab.label,
+            onSelect = { label ->
+                LibraryTab.entries.firstOrNull { it.label == label }?.let { selectedTab = it }
             }
-        }
+        )
 
         Spacer(modifier = Modifier.height(14.dp))
 
@@ -144,7 +137,7 @@ fun LibraryScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 22.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Pink Play button
@@ -167,7 +160,7 @@ fun LibraryScreen(
                 leadingIcon = TapeIcons.Shuffle,
                 backgroundColor = colors.yellow,
                 textColor = colors.onAccent,
-                modifier = Modifier.weight(1.2f),
+                modifier = Modifier.weight(1f),
                 onClick = {
                     if (sortedSongs.isNotEmpty()) {
                         onShuffleAll(sortedSongs)

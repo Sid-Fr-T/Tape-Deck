@@ -42,11 +42,29 @@ data class TapeTypography(
     ),
 
     // Figtree text styles (ExtraBold, Bold, and Medium)
+    val nowPlayingTitle: TextStyle = TextStyle(
+        fontFamily = FigtreeFamily,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 28.sp,
+        lineHeight = 34.sp
+    ),
+    val nowPlayingArtist: TextStyle = TextStyle(
+        fontFamily = FigtreeFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 17.sp,
+        lineHeight = 22.sp
+    ),
     val rowTitle: TextStyle = TextStyle(
         fontFamily = FigtreeFamily,
         fontWeight = FontWeight.ExtraBold,
         fontSize = 16.sp,
         lineHeight = 22.sp
+    ),
+    val chip: TextStyle = TextStyle(
+        fontFamily = FigtreeFamily,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 14.sp,
+        lineHeight = 18.sp
     ),
     val button: TextStyle = TextStyle(
         fontFamily = FigtreeFamily,
