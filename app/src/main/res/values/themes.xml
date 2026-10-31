@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Tapedeck" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#DAD3C6</item>
+        <item name="android:colorBackground">#DAD3C6</item>
+        <item name="android:statusBarColor">#DAD3C6</item>
+        <item name="android:navigationBarColor">#3A3C4A</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

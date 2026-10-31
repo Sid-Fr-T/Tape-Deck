@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Tapedeck</string>
+    <string name="notification_channel_name">Playback Controls</string>
+</resources>
